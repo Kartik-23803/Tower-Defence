@@ -1,0 +1,110 @@
+> Make an empty game object and name it Tile.In it add a cube as its child and set its y position to -4.5. Now in the Tile, add a text mesh pro and in its shader at the bottom set it to TextMeshPro/Distance Field Overlay. Prefab this tile. Enable the snap grid settings(magnet button beside Global and set it to 10 on x. Do the same for snap settings which is on its right, the scale type button and set it to 10 too. Set the scale of cube to 9 overall. Create a 4x4 field using this tile.
+
+> Now go to text mesh pro child and in it, add a script named CoordinateLabeler. Add the namespace TMPro. Above the public classs line, write ExecuteAlways in [ ]. Add a variable of type TextMeshPro and name it label. Create the awake method instead of Start and in it GetComponent<TextMeshPro>() and equate it to label. Also create a Vector2Int variable and name it coordinates and equate it to new Vector2Int() there only. Now in the update method write an if condition that if (!Application.isPlaying) i.e. if the play mode is off, the call methods DisplayCoordinates and UpdateObjectName. In the first method, equate coordinates.x to Mathf.RoundToInt(transform.parent.position.x) / UnityEditor.EditorSnapSettings.move.x; and in next line coordinates.y and position.z  and move.z are changed. In the next line write: label.text = coordinates.x + "," + coordinates.y; In the UpdateObjectName method, write:
+transform.parent.name = coordinates.ToString(); i.e. change the name of the object to the coordinates which are converted to string.
+
+> Now create 2 scripts named Waypoint and EnemyMover. For now, the waypoint script will be empty and just add it to the Tile(parent) prefab. Now make a game object and name it enemy and in it add a cylinder with scales 5 and y position 5. Reset its position. Add the EnemyMover script to the Enemy game object. In the script, create a serialized field of type list:
+List<Waypoint> path = new List<Waypoint>();Then in the start method, call a method named PrintWaypointName. Create this method and in it, make a foreach loop:
+        foreach(Waypoint waypoint in path)
+        {
+            Debug.Log(waypoint.name);
+        }
+Now in the scene, select the enemy and then lock the inspector and select and drag any 4 tiles in the 'Path' of the script. This will add all the waypoints in it and print it when we hit the play button.
+
+> Now change the name of this method to FollowPath and make it a coroutine. Instead of the debug message in the loop, write transform.position = waypoint.transform.position and in next line yield return new WaitForSeconds(timeForDelay) where timeForDelay is a serialized field of type float.
+
+> Import the VoxelCastle art and in the tile prefab, remove the cube mesh and add the grass prefab from the import and prefab -> unpack and then change the material of the grass to ground material imported form the package. Also create prefab variants for horizontal road and all the corner roads. Now in the EnemyMover script, make 2 vector3 variables called startPosition and endPosition and equate the first one to transform.position and the second one to waypoint.transform.position. Then create 2 variables of type Quaternion named startRotation and equate it to transform.rotation and the second one endRotation and equate it to Quaternion.LookRotation(waypoint.transform.position - transform.position);
+
+> Then create 2 floats named rotatePercent and travelPercent and set them to 0f. Now make a while condition that while(travelPercent < 1 || rotatePercent < 1f) then travelPercent += Time.deltaTime * moveSpeed means make it move smoothly with this speed. Next: transform.position = Vector3.Lerp(startPosition, endPosition, travelPercent). Do the same for rotatePercent and transform.rotation = Quaternion.Lerp..... and then yield return new WaitForEndOfFrame().
+
+> Now make a game object named Turret. As its child add 2 cubes and change the mesh and material of both to that of turret. Now remove the base from its child. Select the Turret with the top as its child and make the whole, a child of the base of turret. Name the Turret to Cannon and the base to Turret and prefab it. Now in the Cannon part, add a script called targetLocator. In it make 2 serialized fields of type transform and name one as weapon and the other as target. In the start method, find object of type <EnemyMover>().transform and equate it to target. In the update, call AimWeapon method. In the method write weapon.LookAt(target). Now in the prefab Cannon, set the weapon as cannon and the Target as the Enemy Ship prefab.
+
+> Now add a Particle system to the top part of the cannon and set its position and rotation to the launch side of the model. First go to renderer and change the render mode to mesh and set the mesh and material to that of the missile. Now check the collision and dont forget to check the 'Send collision message' box. Then go to Shape, set the radius, angle to 0 and uncheck the shape. Then set the emission to 1, start lifetime 2 and start speed 20. In the enemy ship, make a script named enemy health and in it make a serialized field of type float and name it maxHealthPoints = 5f. Also make another float named currentHealthPoints and equate it to 0. Then in the start method, equate both the floats. Now make a method named on particle collision and in it call the ProcessHit method. In it, first reduce the currentHealthPoints. then give an if condition that if currentHealthPoints <= 0 then Destroy(gameObject);
+
+> Now in the CoordinateLabelel script, make 2 serialized fields of type color and name them defaultColor = Color.white; and blockedColor = Color.gray; In the Awake method, set the label.enabled = false;  and get component in parent Waypoint and equate it to waypoint which is a variable of same type.; In the update method, call the ToggleLabels and ColorCoordinates methods. In the ToggleLabels method, make an if condition that if Input.GetKeyDown(KeyCode.C)) then label.enabled = !label.IsActive(); In the ColorCoordinates method, if waypoint.IsPlaceable then label.color = defaultColor else blockedColor;
+
+> In the Waypoint script, make a public bool IsPlaceable:
+public bool IsPlaceable { get { return isPlaceble; } }
+this will return the value of the bool isPlaceable. It acts like a getter method. Now in the EnemyMover script, call a method named FindPath and ReturnToStart() after it  in the Start method. Create this method and in it write:
+path.Clear()
+GameObject[ ] waypoints = GameObject.FindGameObjectsWithTag("Path");
+foreach(GameObject waypoint in waypoints)
+{
+    path.Add(waypoint.GetComponent<Waypoint>());
+}
+this means the waypoints with the tag Path will be added in the list Path and each time the list will be cleared so that the path is not overwritten.
+
+> In the ReturnToStart method transform.position = path[0].transform.position. In the FollowPath method, after the foreach loop ends, write gameObject.SetActive(false). In EnemyHealth script too, in the ProcessHit method, in the if condition, instead of destroying, write the same. Change the Start method to OnEnable
+
+> Now create a game object in the hierarchy and name it ObjectPool. In it add a script of same name. In it make 3 serialized fields, one of type gameobject and name it enemyPrefab, second of type int named poolSize and set it to 5 and third float named spawnTime and set it to 2f;. In the Awake method, call a method named PopulatePool and in the Start method StartCoroutine(SpawnEnemies()); In the PopulatePool method write:
+	pool = new GameObject[poolSize];
+        for(int i = 0; i < pool.Length; i++)
+        {
+            pool[i] = Instantiate(enemyPrefab, transform);
+            pool[i].SetActive(false);
+        }
+it means pool is a new array of size poolSize. make a for loop of length pool and instantiate the enemyprefab at the transform of the gameObject and then set the pool inactive.
+
+> Then create another method named EnableObjectInPool and in it make a for loop and check an if condition, that:
+	    if(pool[i].activeInHierarchy == false)
+            {
+                pool[i].SetActive(true);
+                return;
+            }
+if the pool[i] is not active in the hierarchy then set it active and return. Then make the IEnumerator SpawnEnemies(). In it make a while loop:
+	while(true)
+        {
+            EnableObjectInPool();
+            yield return new WaitForSeconds(spawnTime);
+        }
+it means run the loop infinitely and wait for spawntime seconds before running it again.
+
+> Now in the TargetLocator script, make 2 serialized fields, one of type particle system and name it projectileParticles and the other float named range. In the update method, call a method named FindClosestTarget. In this method, create an array of Enemy[ ] named enemies and equate it to FindObjectsOfType<Enemy>(); Make another variable in the method of type transform and name it closestTarget and set it to null. Create a float named maxDistance and equate it to Mathf.Infinity. Now create a foreach loop:
+	foreach(Enemy enemy in enemies)
+        {
+            float targetDistance = Vector3.Distance(transform.position, enemy.transform.position);
+
+            if(targetDistance < maxDistance)
+            {
+                closestTarget = enemy.transform;
+                maxDistance = targetDistance;
+            }
+        }
+means first create float named targetDistance and equate it to Vector3.Distance(transform.position, enemy.transform.position); which will give the distance between these 2. Now if target distance < maxDistance then set the closest target to enemy.transform and maxDistance to targetDistance, and outside the foreach loop set target = closestTarget.
+
+> Now create a method Attack which takes a bool isActive as its parameter. Make a var emissionModule and equate it to projectileParticles.emission; and then emissionModule.enabled = isActive; Now in the AimWeapon method, make a float namde targetDistance and equate it to Vector3.Distance(transform.position, target.position); Then after lookAt write an if statement that if targetDistance < range then Attack(true) else Attack(false); In the scene, drag the missile in the field of particle system and set the range to 15.
+
+> Now create an empty game object and name it Bank. Add a script named Bank to it. here make 2 serialized fields of type int named startBalance = 150 and currentBalance, equate both in Awake method. make a public void method named Deposit which takes an integer amount as it parameter. In it write:
+currentBalance += Mathf.Abs(amount);
+ Do the same for Withdrawl method and write '-=' instead. Now in the Enemy script make a variable of type Bank and name it bank. In the start, find object of type Bank. Then make a public void method named RewardGold and in it write:
+	if(bank == null) { return; }
+        bank.Deposit(goldReward);
+means if no bank object then return else call the Deposit method from the bank script. Write the same for StealGold method but write Withdrawl instead of Deposit and pass goldPenalty where both these parameters are serialized int of value 25. Now in the EnemyHealth script, make a variable of type Enemy and name it enemy. Get component in start ( earlier start method is changed to OnEnable). The after setAQctive(false) in process hit method, call the RewardGold method from enemy script: enemy.RewardGold(); Follow the same steps for EnemyMover script and before setActive(false) call enemy.StealGold();
+
+> Now in the Waypoint script, make the defencePrefab a variable of type Tower instead of GameObject. In the if statement, make a bool named isPlaced and equate it to defencePrefab.CreateTower(defencePrefab, transform.position); and then isPlaceable = !isPlaced. Now in the Tower script, that is attached to the 'Turret', make a serialized field of type int and name it cost = 75. Make a public bool named CreateTower which takes 2 parameters, one of type Tower and name it tower and other Vector3 and name it position. In it make a variable of type Bank and name it bank ad equate it to find object of type bank. If(bank == null) then return. Now make another if statement that if bank.Currentbalance >= cost) then Instantiate(tower.gameObject, position, Quaternion.identity); and newxt bank.Withdrawl(cost) and return true and then outside the if condition, return false.
+
+> Now add a canvas in the scene and a text mesh pro as its child, set the text box to the bottom left, get the proper font for it. Now in the bank script, make a serialized field of TextMeshProUGUI and name it displayBalance. Make a method named UpdateDisplay() and in it displayBalance.text = "Gold: " + currentBalance;. Also create a ReloadScene method in which make a varialbe of type Scene and name it currentScene and equate it to SceneManager.GetActiveScene(). Then in the next line write SceneManager.LoadScene(currentScene,buildIndex); This will reload the scene if one enemy reaches the end of path. Prefab the Bank, canvas and also create enemy and home base. Take them from the castls or the ship or any asset. In the enemy health script, make an int named difficulty ramp and serialize it. In the ProcessHit method, after the enemy is setActive(false) the increase the currentHealth+=difficultyramp. This way the health of enemy will be more each time it respawns.
+
+***************************************************************************************************
+
+> Now back up this project and now in the project make a script named Node and in it remove : MonoBehaviour. Now we cannot add this script to any game object as we removed it. In this script, first make a public variable of type Vector2Int and name it coordinates. Next create 3 public bool named isWalkable, isExplored, isPath and then create a public Node named connectedTo, which is a constructor of the same name as the class. Now make a method:
+    public Node(Vector2Int coordinates, bool isWalkable)
+    {
+        this.coordinates = coordinates;
+        this.isWalkable = isWalkable;
+    }
+here the method takes 2 parameters as shown. These variables/parameters are different from the ones declared at the start. So to equate them, we use 'this' keyword. It means that 'this' 'coordinates' variable is equal to the one declared above. Now create another script named GridManager and keep it MonoBehaviour. Make a serialized field of Node and name it node. In the start method, debug.log(node.coordinates) and node.isWalkable. In the Node script, after the namespaces, write in [ ] System.Serializable, this will show the script in the inspector even if it is not MonoBehaviour.
+
+> We will now use dictionary as it is a key-value pair. Keys are unique and simple whereas values are more complex. So we will use coordinates of node as our key as it is unique to a point in the world and keys will include the information about the nodes. Keys cannot be null unlike values. Make a gameobject named grid manager and assign the grid manager script to it.
+
+> Remove the start and update. Make a Dictionary<Vector2Int, Node> and name it grid and equate it to new Dictionary<Vector2Int, Node>(). This means the dictionary will have the key of data type Vector2Int and value of type Node. Now make Awake method and call the CreateGrid method. Now create this method under Awake. At the top add a serialized field of type Vector2Int named gridSize. Now the grid will start from (0,0) and loop through all the elements and create a new node object for the position. So in the method, make a for loop:
+
+for(int x=0;x<gridSize.x; x++)
+{
+for(int y=0;y<gridSize.y;y++)
+{
+	Vector2Int coordinates = mew Vector2Int(x,y)
+}
+}
+
+so first the loop will go for all the elements in the x direction and then for each of the y. Then make a vect
